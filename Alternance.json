@@ -1,0 +1,550 @@
+{
+  "id": "1VQqLdIJw4qzhC8d",
+  "name": "Alternance",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b53ea30e-6ff3-4fdf-9385-a4825b7597b7",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT profil, telegram_chat_id AS telegramChatId FROM candidate_profile LIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        208,
+        0
+      ],
+      "id": "df78dea6-4699-432d-bfd0-e37d1b690db0",
+      "name": "Profil candidat",
+      "credentials": {
+        "mySql": {
+          "id": "HrKOLTlKvzXm0i3F",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM job_offers\nWHERE status = 'new' AND score_ai IS NULL\nORDER BY created_at DESC, id DESC\nLIMIT 100;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        624,
+        0
+      ],
+      "id": "273b6782-f24a-4b48-a3a4-ac2fddb2d2dd",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "mySql": {
+          "id": "HrKOLTlKvzXm0i3F",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": {
+          "__rl": true,
+          "value": "job_offers",
+          "mode": "list",
+          "cachedResultName": "job_offers"
+        },
+        "dataMode": "defineBelow",
+        "columnToMatchOn": "id",
+        "valueToMatchOn": "={{ $json.id }}",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "status",
+              "value": "={{ $json.echecTechnique ? 'new' : 'analyzed' }}"
+            },
+            {
+              "column": "score_ai",
+              "value": "={{ $json.echecTechnique ? null : $json.score }}"
+            },
+            {
+              "column": "analyse_ia",
+              "value": "={{ $json.echecTechnique ? null : $json.analyse }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1872,
+        256
+      ],
+      "id": "896af8bf-b442-4d3a-9baf-db2de7299574",
+      "name": "Update rows in a table",
+      "credentials": {
+        "mySql": {
+          "id": "HrKOLTlKvzXm0i3F",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 10,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "9928ad6f-ef52-4b85-96a1-89855b89a94c",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2096,
+        -208
+      ],
+      "id": "e868dd99-32fa-4881-b5b0-c55b612878bc",
+      "name": "Wait",
+      "webhookId": "3d72278c-b56d-403c-85db-26078a2acd22"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bc90843d-5375-42cd-976e-bee1cfbb57df",
+              "leftValue": "={{ $json.score }}",
+              "rightValue": 10,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        2080,
+        256
+      ],
+      "id": "44685379-8b8d-4472-9ee2-0ba42c507f62",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Profil candidat').first().json.telegramChatId }}",
+        "text": "=NOUVELLE OFFRE PERTINENTE\n\nPiste : {{ $json.type_piste === 'cdi' ? 'CDI' : 'Alternance' }}\nTitre : {{ $json.title }}\nEntreprise : {{ $json.company }}\nLieu : {{ $json.location }}\nScore : {{ $json.score }}/20\n\nAvis de l'IA :\n{{ $json.analyse }}\n\nVoir l'offre : {{ $json.link }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2288,
+        256
+      ],
+      "id": "aa2bbb8a-3d23-484d-8c1d-ab6199bebe8c",
+      "name": "Send a text message",
+      "webhookId": "ce5ffdca-3656-4da8-b0a6-e0eb9eafd137",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "telegramApi": {
+          "id": "c5xmy55pbGUjTWxB",
+          "name": "Telegram account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": {{ JSON.stringify($json.promptText) }}\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"maxOutputTokens\": 32768\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2432,
+        -208
+      ],
+      "id": "1305f541-44ac-457a-96f9-eaf14597ca02",
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3Oyu1vxFjEBYQ6UW",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Candidature - {{ $json.company }}",
+        "message": "={{ $json.lettre }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2496,
+        256
+      ],
+      "id": "a2b25afe-0fd3-4ac9-89a0-58a099de8676",
+      "name": "Create a draft",
+      "webhookId": "d48280f2-2bf2-4dac-8e5f-3f0954066877",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "2QSbPBxgi6Rxb3gn",
+          "name": "Gmail account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const reponse = $input.first().json;\nconst offresOriginales = $('Construire le prompt').first().json.offres;\n\n// Un appel en echec (quota depasse, service indisponible) ne renvoie aucun candidat. Les offres\n// du lot sont alors marquees en echec technique : le noeud suivant les laisse en 'new' pour\n// quelles soient reproposees au prochain lancement, au lieu de les consommer sans analyse.\nconst texteBrut = reponse.candidates?.[0]?.content?.parts?.[0]?.text ?? '';\n\nlet resultatsIA = null;\nif (texteBrut) {\n  try {\n    resultatsIA = JSON.parse(texteBrut.replace(/```json/g, '').replace(/```/g, '').trim());\n  } catch (erreur) {\n    resultatsIA = null;\n  }\n}\n\nif (!Array.isArray(resultatsIA)) {\n  return offresOriginales.map(offre => ({ json: { ...offre, echecTechnique: true, score: null, analyse: null, lettre: null } }));\n}\n\nreturn offresOriginales.map((offre, index) => {\n  const resultat = resultatsIA[index];\n  if (!resultat) {\n    return { json: { ...offre, echecTechnique: true, score: null, analyse: null, lettre: null } };\n  }\n  return {\n    json: {\n      id: offre.id,\n      title: offre.title,\n      company: offre.company,\n      location: offre.location,\n      link: offre.link,\n      echecTechnique: false,\n      score: Number(resultat.score),\n      type_piste: resultat.type_piste ?? 'inconnue',\n      analyse: resultat.analyse ?? '',\n      lettre: resultat.lettre ?? ''\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        16
+      ],
+      "id": "a1b2c3d4-0000-4000-8000-parseia00001",
+      "name": "Parse IA"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mots-cles technologiques ou de domaine incompatibles avec le profil (stack reelle :\n// React/Node/TypeScript/MySQL, pas Java ni Angular - voir discussion du 17/08).\n// Match volontairement conservateur : seuls des signaux non ambigus sont retenus.\nconst MOTS_CLES_ELIMINATOIRES = [\n  { motif: /\\bjava\\b/i, raison: 'Java (hors stack : React/Node/TypeScript)' },\n  { motif: /\\bangular\\b/i, raison: 'Angular (hors stack : React/Node/TypeScript)' },\n  { motif: /\\bcobol\\b/i, raison: 'COBOL' },\n  { motif: /\\bmainframe\\b/i, raison: 'Mainframe' },\n  { motif: /automat(isme|icien)/i, raison: 'Automatisme industriel' }\n];\n\nreturn $input.all().map(item => {\n  const texte = `${item.json.title || ''} ${item.json.description || ''}`;\n  const correspondance = MOTS_CLES_ELIMINATOIRES.find(regle => regle.motif.test(texte));\n\n  item.json.est_elimine = Boolean(correspondance);\n  item.json.raison_elimination = correspondance ? correspondance.raison : '';\n  return item;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        0
+      ],
+      "id": "a60152bb-a171-4cae-b740-5ca97ab76836",
+      "name": "Pré-filtre mots-clés"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bbd7d461-5f5e-4409-b130-c1d93d6a1811",
+              "leftValue": "={{ $json.est_elimine }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1024,
+        -240
+      ],
+      "id": "7c363edd-4dca-48db-a3cd-355d0165ffc4",
+      "name": "Offres éliminée ?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": {
+          "__rl": true,
+          "value": "job_offers",
+          "mode": "list",
+          "cachedResultName": "job_offers"
+        },
+        "dataMode": "defineBelow",
+        "columnToMatchOn": "id",
+        "valueToMatchOn": "={{ $json.id }}",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "status",
+              "value": "analyzed"
+            },
+            {
+              "column": "score_ai",
+              "value": "0"
+            },
+            {
+              "column": "analyse_ia",
+              "value": "={{ 'Écartée par pré-filtre : ' + $json.raison_elimination }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1296,
+        -256
+      ],
+      "id": "47290ab7-4803-4479-a8d2-9b9b5834b563",
+      "name": "Marquer éliminées (pré-filtre)",
+      "credentials": {
+        "mySql": {
+          "id": "HrKOLTlKvzXm0i3F",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "offres",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        0
+      ],
+      "id": "af8b9b3d-65d2-4501-a4d8-bebef7b9405e",
+      "name": "Regrouper le lot"
+    },
+    {
+      "parameters": {
+        "jsCode": "const offres = $json.offres;\n\n// Le profil candidat (competences, contraintes geographiques, pistes recherchees) est lu en base\n// par le node 'Profil candidat' (table candidate_profile), afin que ce workflow exporte ne\n// contienne aucune donnee personnelle.\nconst descriptionProfil = $('Profil candidat').first().json.profil;\n\nconst listeOffres = offres.map((offre, index) =>\n  `--- OFFRE ${index} ---\\nType de contrat (donnee fiable de la source) : ${offre.contract_type}\\nTitre : ${offre.title}\\nEntreprise : ${offre.company}\\nLieu de travail : ${offre.location}\\nDescription : ${offre.description}`\n).join('\\n\\n');\n\nconst consignes = `\\n\\nVoici ${offres.length} offres a analyser, numerotees de 0 a ${offres.length - 1}.\\n\\nPour CHAQUE offre, applique ces regles dans l'ordre :\\n\\n1. Note l'offre sur 20.\\n\\n   REGLE GEOGRAPHIQUE, prioritaire sur toutes les autres :\\n   Si le lieu de travail n'est pas dans la metropole lilloise ET que l'offre ne propose pas un teletravail\\n   integral, la note ne depasse pas 4 sur 20, quelle que soit la qualite technique de l'offre.\\n\\n   REGLES SELON LA PISTE :\\n   - Type de contrat ALTERNANCE : evalue l'offre pour la PISTE A.\\n     Plafonne a 8 sur 20 si l'offre exige un niveau bac+5 deja acquis, ou plus de deux ans d'experience.\\n     Plafonne a 8 sur 20 si le rythme annonce est incompatible avec 3 semaines entreprise / 1 semaine ecole.\\n   - Type de contrat CDI : evalue l'offre pour la PISTE B.\\n     Plafonne a 8 sur 20 si l'offre exige plus de trois ans d'experience, ou vise un profil senior, lead ou architecte.\\n     Plafonne a 6 sur 20 si le poste n'est pas un poste de developpement.\\n   - Tout autre type de contrat : la note ne depasse pas 4 sur 20.\\n\\n   Le type de contrat fourni provient des donnees structurees de la source et fait foi. Ne le deduis pas\\n   du texte : une offre mentionnant « une premiere experience en alternance » designe un poste classique.\\n\\n2. Renseigne \"type_piste\" avec \"alternance\" ou \"cdi\", selon le type de contrat fourni.\\n\\n3. Dans \"analyse\", commence par indiquer le lieu et le type de contrat, puis donne ton avis en deux phrases maximum.\\n\\n4. Redige une lettre de motivation complete et personnalisee, prete a etre envoyee. Adapte-la a la piste.\\n\\nReponds UNIQUEMENT avec un tableau JSON de ${offres.length} elements, sans bloc markdown autour, dans le MEME ORDRE que les offres ci-dessus. Chaque element a exactement ces quatre champs : score (nombre entier), type_piste (chaine), analyse (chaine), lettre (chaine).`;\n\nreturn [{\n  json: {\n    offres: offres,\n    promptText: descriptionProfil + '\\n\\n' + listeOffres + consignes\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        0
+      ],
+      "id": "b44015c5-8f88-4853-865c-bcf7e0f9018e",
+      "name": "Construire le prompt"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Profil candidat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Profil candidat": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Pré-filtre mots-clés",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Regrouper le lot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Parse IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse IA": {
+      "main": [
+        [
+          {
+            "node": "Update rows in a table",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pré-filtre mots-clés": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Offres éliminée ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Offres éliminée ?": {
+      "main": [
+        [
+          {
+            "node": "Marquer éliminées (pré-filtre)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Regrouper le lot": {
+      "main": [
+        [
+          {
+            "node": "Construire le prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire le prompt": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "pinData": {}
+}

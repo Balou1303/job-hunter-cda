@@ -1,0 +1,23 @@
+# Dépendances
+node_modules/
+dist/
+
+# Secrets
+.env
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# n8n
+.n8n/
+
+# Notes de travail personnelles, non destinees au depot
+CLAUDE.md
+
+# Sauvegardes locales
+job_offers_backup.sql
