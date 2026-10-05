@@ -29,10 +29,17 @@ const REQUEST_HEADERS = {
 
 // Traduit la facette "contract_type" de WTTJ vers les trois valeurs utilisees dans le reste
 // du programme : 'ALTERNANCE', 'CDI' ou 'AUTRE'.
-//
 // FULL_TIME designe un poste permanent a temps plein, soit un CDI dans le contexte francais.
-function normaliserTypeContrat(contractType) {
+// Detection de mots clefs dans le titre pour attraper les offres d'alternance qui ne sont pas correctement etiquetees par WTTJ
+// Il arrive que l'entreprise publie une offre d'alternance en indiquant FULL_TIME comme type de contrat.
+// Seul le titre est examine, car une description peut mentionner « une premiere experience en
+// alternance » pour un poste classique.
+function normaliserTypeContrat(contractType, titre) {
     if (contractType === 'APPRENTICESHIP') {
+        return 'ALTERNANCE';
+    }
+
+    if (/\b(alternance|alternant|alternante|apprenti|apprentie|apprentissage)\b/i.test(titre)) {
         return 'ALTERNANCE';
     }
 
@@ -91,7 +98,7 @@ async function searchOffers() {
                 title: rawOffer.name,
                 company: rawOffer.organization?.name || 'Inconnu',
                 location: rawOffer.offices?.[0]?.city || 'Non renseigné',
-                contractType: normaliserTypeContrat(rawOffer.contract_type),
+                contractType: normaliserTypeContrat(rawOffer.contract_type, rawOffer.name),
                 contractLabel: contractTypeLabel,
                 link: jobUrl,
                 description: rawOffer.profile || ''
