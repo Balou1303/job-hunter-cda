@@ -55,7 +55,7 @@ Dashboard/api/
   controllers/             Logique des requêtes HTTP
   model/                   Accès aux données (MySQL)
 scripts/                  Scripts SQL d'initialisation et de migration
-Alternance.json           Export du workflow n8n (générique, sans donnée personnelle)
+Alternance.json           Export du workflow n8n (sans donnée personnelle, critères de tri à adapter : voir Personnalisation)
 ```
 
 ## Installation
@@ -79,6 +79,19 @@ Alternance.json           Export du workflow n8n (générique, sans donnée pers
 
    Le profil et le chat ID sont lus via une requête SQL (node "Profil candidat"), plutôt que via une variable d'environnement : sur les versions récentes de n8n, l'exécution des nodes Code/expression est isolée dans un « Task Runner » qui n'a accès ni à `$env` ([bug connu](https://github.com/n8n-io/n8n/issues/29603)) ni à `process.env`, et la fonctionnalité Variables ($vars) est réservée au plan Enterprise. La base de données reste accessible sans restriction, d'où ce choix.
 7. Lancer l'API de consultation : `npm start --prefix Dashboard/api`
+
+## Personnalisation
+
+Le profil candidat est lu en base, mais plusieurs critères de tri restent écrits en dur et correspondent à la recherche d'origine (développeur junior, métropole lilloise, alternance CDA). Ils sont à adapter avant une première utilisation :
+
+| Critère | Emplacement | Contenu actuel |
+|---|---|---|
+| Zone géographique | [src/geo.js](src/geo.js), liste `COMMUNES_METROPOLE_LILLOISE` | Communes de la métropole lilloise, plus le télétravail intégral |
+| Mots-clés éliminatoires | Workflow n8n, node « Pré-filtre mots-clés », liste `MOTS_CLES_ELIMINATOIRES` | Technologies et types de poste écartés avant l'appel à Gemini, sans consommer de requête |
+| Règles de notation | Workflow n8n, node « Construire le prompt », texte des consignes | Plafonds de note (zone géographique, type de contrat, niveau exigé, rythme d'alternance) |
+| Seuil de notification | Workflow n8n, node « Filter » | Note minimale pour déclencher la notification Telegram |
+
+Après une modification faite dans l'interface n8n, `Alternance.json` ne reflète plus le workflow réel : le réexporter avant de lancer `npm run sync-workflow`, qui remplace le workflow n8n par le contenu du fichier. L'export depuis l'interface supprime le champ `id` racine, à conserver pour que l'import mette à jour le workflow existant au lieu d'en créer un second.
 
 ## Limites connues
 
