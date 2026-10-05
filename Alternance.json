@@ -450,6 +450,11 @@
             "node": "Send a text message",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -467,13 +472,7 @@
     },
     "Send a text message": {
       "main": [
-        [
-          {
-            "node": "Create a draft",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Parse IA": {
