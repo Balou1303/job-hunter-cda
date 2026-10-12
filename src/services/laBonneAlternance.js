@@ -5,7 +5,7 @@ const logger = require('../logger');
 // recherche. Contrairement a France Travail et WTTJ, cette API n'expose pas de recherche par
 // mot-cle libre : elle se filtre uniquement par code ROME.
 // M1805 = Etudes et developpement informatique, M1806 = Conseil et maitrise d'ouvrage en SI.
-const ROME_CODES_DEVELOPPEUR = 'M1805,M1806';
+const DEVELOPER_ROME_CODES = 'M1805,M1806';
 
 // Centre de recherche et rayon, definis via .env (memes variables que pour WTTJ, afin de
 // rester coherent entre les sources).
@@ -16,9 +16,9 @@ const SEARCH_RADIUS_KM = Number(process.env.SEARCH_RADIUS_KM);
 // Extrait le nom de ville a partir d'une adresse postale complete, par exemple
 // "142 RUE NATIONALE 59800 LILLE" -> "LILLE". L'API ne fournit pas de champ ville separe,
 // seulement l'adresse entiere associee au SIRET de l'etablissement.
-function extraireVille(adresse) {
-    const correspondance = (adresse || '').match(/\d{5}\s+(.+)$/);
-    return correspondance ? correspondance[1].trim() : adresse;
+function extractCity(address) {
+    const match = (address || '').match(/\d{5}\s+(.+)$/);
+    return match ? match[1].trim() : address;
 }
 
 async function searchOffers() {
@@ -32,7 +32,7 @@ async function searchOffers() {
             'https://api.apprentissage.beta.gouv.fr/api/job/v1/search',
             {
                 params: {
-                    romes: ROME_CODES_DEVELOPPEUR,
+                    romes: DEVELOPER_ROME_CODES,
                     latitude: SEARCH_LATITUDE,
                     longitude: SEARCH_LONGITUDE,
                     radius: SEARCH_RADIUS_KM
@@ -51,7 +51,7 @@ async function searchOffers() {
             id: rawJob.identifier.id || rawJob.identifier.partner_job_id,
             title: rawJob.offer.title,
             company: rawJob.workplace?.name || rawJob.workplace?.brand || rawJob.workplace?.legal_name || 'Inconnu',
-            location: extraireVille(rawJob.workplace?.location?.address),
+            location: extractCity(rawJob.workplace?.location?.address),
             contractType: 'ALTERNANCE',
             contractLabel: (rawJob.contract?.type || []).join(', ') || 'Non renseigné',
             link: rawJob.apply?.url,
@@ -60,8 +60,8 @@ async function searchOffers() {
 
         // Une offre associee a plusieurs des codes ROME demandes (romes=M1805,M1806) revient une
         // fois par code : on deduplique sur l'id avant de la transmettre au reste du programme.
-        const offersUniquesParId = [...new Map(offers.map(offre => [offre.id, offre])).values()];
-        return offersUniquesParId;
+        const uniqueOffersById = [...new Map(offers.map(offer => [offer.id, offer])).values()];
+        return uniqueOffersById;
     } catch (error) {
         const msg = error.response?.data ? JSON.stringify(error.response.data) : error.message;
         logger.error('Erreur Search La Bonne Alternance : ' + msg);

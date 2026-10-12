@@ -86,7 +86,7 @@ Le profil candidat est lu en base, mais plusieurs critères de tri restent écri
 
 | Critère | Emplacement | Contenu actuel |
 |---|---|---|
-| Zone géographique | [src/geo.js](src/geo.js), liste `COMMUNES_METROPOLE_LILLOISE` | Communes de la métropole lilloise, plus le télétravail intégral |
+| Zone géographique | [src/geo.js](src/geo.js), liste `LILLE_METROPOLIS_TOWNS` | Communes de la métropole lilloise, plus le télétravail intégral |
 | Mots-clés éliminatoires | Workflow n8n, node « Pré-filtre mots-clés », liste `MOTS_CLES_ELIMINATOIRES` | Technologies et types de poste écartés avant l'appel à Gemini, sans consommer de requête |
 | Règles de notation | Workflow n8n, node « Construire le prompt », texte des consignes | Plafonds de note (zone géographique, type de contrat, niveau exigé, rythme d'alternance) |
 | Seuil de notification | Workflow n8n, node « Filter » | Note minimale pour déclencher la notification Telegram |
@@ -97,7 +97,7 @@ Après une modification faite dans l'interface n8n, `Alternance.json` ne reflèt
 
 - Les identifiants Algolia de Welcome to the Jungle sont publics mais susceptibles d'être modifiés par le site. En cas d'échec de cette source, relever les nouvelles valeurs sur `https://www.welcometothejungle.com/api/env`.
 - Le filtre géographique repose sur la ville déclarée dans l'offre, qui n'est pas toujours renseignée avec précision.
-- La liste des communes autorisées dans [src/geo.js](src/geo.js) (`COMMUNES_METROPOLE_LILLOISE`) est propre à la métropole lilloise. Pour cibler une autre métropole, cette liste doit être remplacée manuellement — contrairement aux coordonnées de recherche (`SEARCH_LATITUDE`/`SEARCH_LONGITUDE`/`SEARCH_RADIUS_KM`), elle n'est pas paramétrable via `.env`.
+- La liste des communes autorisées dans [src/geo.js](src/geo.js) (`LILLE_METROPOLIS_TOWNS`) est propre à la métropole lilloise. Pour cibler une autre métropole, cette liste doit être remplacée manuellement — contrairement aux coordonnées de recherche (`SEARCH_LATITUDE`/`SEARCH_LONGITUDE`/`SEARCH_RADIUS_KM`), elle n'est pas paramétrable via `.env`.
 
 ---
 *Projet réalisé dans le cadre de la montée en compétences vers le titre Concepteur Développeur d'Applications.*

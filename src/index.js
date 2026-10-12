@@ -36,35 +36,35 @@ async function main() {
         // Ce tri remplace l'ancien filtre par mots-cles, qui retenait toute offre contenant le mot
         // « alternance » et laissait donc passer les postes classiques exigeant « une premiere
         // experience en alternance ». Les CDD, missions d'interim et stages sont ecartes ici.
-        const PISTES_RECHERCHEES = ['ALTERNANCE', 'CDI'];
-        const filteredOffers = allOffers.filter(jobOffer => PISTES_RECHERCHEES.includes(jobOffer.contractType));
+        const TARGET_CONTRACT_TYPES = ['ALTERNANCE', 'CDI'];
+        const filteredOffers = allOffers.filter(jobOffer => TARGET_CONTRACT_TYPES.includes(jobOffer.contractType));
 
-        const compteurParContrat = filteredOffers.reduce((compteur, jobOffer) => {
-            compteur[jobOffer.contractType] = (compteur[jobOffer.contractType] || 0) + 1;
-            return compteur;
+        const countByContractType = filteredOffers.reduce((counter, jobOffer) => {
+            counter[jobOffer.contractType] = (counter[jobOffer.contractType] || 0) + 1;
+            return counter;
         }, {});
 
         logger.info(`${filteredOffers.length} offres retenues sur les deux pistes : ` +
-                    `${compteurParContrat.ALTERNANCE || 0} en alternance, ${compteurParContrat.CDI || 0} en CDI.`);
+                    `${countByContractType.ALTERNANCE || 0} en alternance, ${countByContractType.CDI || 0} en CDI.`);
 
         // Second tri, geographique. Les deux sources debordent de leur rayon de recherche :
         // le lieu declare par l'offre est parfois le siege de l'entreprise et non le lieu de travail.
         // Ecarter ces offres ici plutot qu'a l'analyse economise autant de requetes vers l'IA.
-        const offresAccessibles = filteredOffers.filter(geo.estGeographiquementAccessible);
+        const accessibleOffers = filteredOffers.filter(geo.isGeographicallyAccessible);
 
         // Les offres ecartees sont listees dans le journal : un rejet silencieux masquerait une
         // commune absente de la liste, donc une opportunite perdue sans trace.
-        const offresEcartees = filteredOffers.filter(jobOffer => !geo.estGeographiquementAccessible(jobOffer));
-        if (offresEcartees.length > 0) {
-            const lieuxEcartes = [...new Set(offresEcartees.map(jobOffer => jobOffer.location))].sort();
-            logger.info(`${offresEcartees.length} offres écartées hors métropole lilloise : ${lieuxEcartes.join(', ')}.`);
+        const excludedOffers = filteredOffers.filter(jobOffer => !geo.isGeographicallyAccessible(jobOffer));
+        if (excludedOffers.length > 0) {
+            const excludedLocations = [...new Set(excludedOffers.map(jobOffer => jobOffer.location))].sort();
+            logger.info(`${excludedOffers.length} offres écartées hors métropole lilloise : ${excludedLocations.join(', ')}.`);
         }
 
-        logger.info(`${offresAccessibles.length} offres accessibles dans le rayon geographique cible.`);
+        logger.info(`${accessibleOffers.length} offres accessibles dans le rayon geographique cible.`);
 
         // Sauvegarde en base de donnees (uniquement si on a trouve au moins une offre)
-        if (offresAccessibles.length > 0) {
-            const savedCount = await jobModel.saveOffers(offresAccessibles);
+        if (accessibleOffers.length > 0) {
+            const savedCount = await jobModel.saveOffers(accessibleOffers);
             logger.info(`${savedCount} offres sécurisées en base de données.`);
         }
 

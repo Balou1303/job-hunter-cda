@@ -12,12 +12,12 @@
 // La comparaison se fait donc sur une forme reduite : minuscules, sans accents, sans ligature,
 // sans apostrophes ni tirets ni espaces. « 59 - Marcq-en-Barœul » et « marcq en baroeul »
 // donnent tous deux « marcqenbaroeul ».
-function normaliserNomDeVille(libelle) {
-    if (!libelle) {
+function normalizeCityName(label) {
+    if (!label) {
         return '';
     }
 
-    return libelle
+    return label
         .replace(/^\s*\d{2,3}\s*-\s*/, '')   // retrait du prefixe departemental « 59 - »
         .toLowerCase()
         .replace(/œ/g, 'oe')                  // la ligature ne se decompose pas en NFD
@@ -29,7 +29,7 @@ function normaliserNomDeVille(libelle) {
 
 // Les 95 communes de la Metropole Europeenne de Lille.
 // Lille inclut ses communes associees Hellemmes et Lomme, citees separement par certaines offres.
-const COMMUNES_METROPOLE_LILLOISE = [
+const LILLE_METROPOLIS_TOWNS = [
     'Allennes-les-Marais', 'Anstaing', 'Armentières', 'Aubers', 'Baisieux', 'Bauvin',
     'Beaucamps-Ligny', 'Bondues', 'Bousbecque', 'Bouvines', 'Capinghem', 'Carnin',
     'Chéreng', 'Comines', 'Croix', 'Deûlémont', 'Don', 'Emmerin', 'Englos',
@@ -50,12 +50,12 @@ const COMMUNES_METROPOLE_LILLOISE = [
     'Wervicq-Sud', 'Wicres', 'Willems'
 ];
 
-const VILLES_AUTORISEES = new Set(COMMUNES_METROPOLE_LILLOISE.map(normaliserNomDeVille));
+const ALLOWED_CITIES = new Set(LILLE_METROPOLIS_TOWNS.map(normalizeCityName));
 
 // Le mot « teletravail » seul ne suffit pas : la plupart des offres proposent deux jours par semaine,
 // ce qui impose malgre tout d'habiter a proximite. Seules les formulations designant un poste
 // entierement a distance sont retenues.
-const EXPRESSIONS_TELETRAVAIL_INTEGRAL = [
+const FULL_REMOTE_PATTERNS = [
     /full\s*remote/,
     /100\s*%?\s*(?:de\s*)?(?:teletravail|remote|distanciel)/,
     /(?:teletravail|remote)\s*(?:a\s*)?100\s*%/,
@@ -66,8 +66,8 @@ const EXPRESSIONS_TELETRAVAIL_INTEGRAL = [
 
 // Le texte de l'offre est reduit comme les noms de ville, mais en conservant les espaces
 // et le signe pourcent, necessaires aux expressions ci-dessus.
-function normaliserTexteOffre(texte) {
-    return (texte || '')
+function normalizeOfferText(text) {
+    return (text || '')
         .toLowerCase()
         .replace(/œ/g, 'oe')
         .normalize('NFD')
@@ -75,29 +75,29 @@ function normaliserTexteOffre(texte) {
         .replace(/[^a-z0-9%]+/g, ' ');
 }
 
-function estEnTeletravailIntegral(jobOffer) {
-    const texte = normaliserTexteOffre(`${jobOffer.title} ${jobOffer.description}`);
-    return EXPRESSIONS_TELETRAVAIL_INTEGRAL.some(expression => expression.test(texte));
+function isFullRemote(jobOffer) {
+    const text = normalizeOfferText(`${jobOffer.title} ${jobOffer.description}`);
+    return FULL_REMOTE_PATTERNS.some(pattern => pattern.test(text));
 }
 
-function estDansMetropoleLilloise(jobOffer) {
-    return VILLES_AUTORISEES.has(normaliserNomDeVille(jobOffer.location));
+function isInLilleMetropolis(jobOffer) {
+    return ALLOWED_CITIES.has(normalizeCityName(jobOffer.location));
 }
 
 // Une offre sans lieu renseigne est conservee : mieux vaut la soumettre a l'analyse que de perdre
 // une opportunite sur une donnee manquante. Le prompt de notation applique alors la regle
 // geographique a partir du texte.
-function estGeographiquementAccessible(jobOffer) {
+function isGeographicallyAccessible(jobOffer) {
     if (!jobOffer.location) {
         return true;
     }
 
-    return estDansMetropoleLilloise(jobOffer) || estEnTeletravailIntegral(jobOffer);
+    return isInLilleMetropolis(jobOffer) || isFullRemote(jobOffer);
 }
 
 module.exports = {
-    estGeographiquementAccessible,
-    estDansMetropoleLilloise,
-    estEnTeletravailIntegral,
-    normaliserNomDeVille
+    isGeographicallyAccessible,
+    isInLilleMetropolis,
+    isFullRemote,
+    normalizeCityName
 };

@@ -1,9 +1,9 @@
 const pool = require('./database');
 const logger = require('../logger');
 
-async function saveOffers(offres) {
+async function saveOffers(offers) {
     let count = 0;
-    for (const offre of offres) {
+    for (const offer of offers) {
         try {
             // ON DUPLICATE KEY UPDATE title = VALUES(title) : si l'offre existe déjà, on met à jour le titre
             const sql = `
@@ -14,19 +14,19 @@ async function saveOffers(offres) {
 
             // L'objet "offre" est maintenant standardisé, le modèle n'a plus besoin de deviner la structure !
             const params = [
-                offre.id || null,
-                offre.title || null,
-                offre.company || 'Inconnu',
-                offre.location || null,
-                offre.contractType || 'AUTRE',
-                offre.link || null,
-                offre.description || null
+                offer.id || null,
+                offer.title || null,
+                offer.company || 'Inconnu',
+                offer.location || null,
+                offer.contractType || 'AUTRE',
+                offer.link || null,
+                offer.description || null
             ];
 
             await pool.execute(sql, params);
             count++; // incrémente le compteur (count = count + 1)
         } catch (error) {
-            logger.error(`Erreur d'insertion offre ${offre.id}: ${error.message}`);
+            logger.error(`Erreur d'insertion offre ${offer.id}: ${error.message}`);
         }
     }
     return count;
