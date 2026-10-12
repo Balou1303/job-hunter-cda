@@ -4,7 +4,7 @@ const logger = require('../logger');
 require('dotenv').config();
 
 
-const Database = mysql.createPool({
+const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
@@ -12,7 +12,7 @@ const Database = mysql.createPool({
     port: process.env.DB_PORT,
 })
 
-Database.getConnection()
+pool.getConnection()
 try {
     logger.info("database ok ✅​");
     
@@ -21,4 +21,4 @@ try {
     
 }
 
-module.exports = Database; // export d'une instance unique (Singleton)
+module.exports = pool; // export d'une instance unique (Singleton)

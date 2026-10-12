@@ -30,14 +30,14 @@ async function getAccessToken() {
 // L'API expose un booleen `alternance` et un champ `natureContrat` explicite. Ces deux champs
 // decrivent le contrat reellement propose, contrairement au texte de l'offre : une description
 // mentionnant « une premiere experience en alternance » designe un poste classique, pas une alternance.
-function normaliserTypeContrat(offre) {
-    const nature = (offre.natureContrat || '').toLowerCase();
+function normalizeContractType(rawOffer) {
+    const contractNature = (rawOffer.natureContrat || '').toLowerCase();
 
-    if (offre.alternance === true || nature.includes('apprentissage') || nature.includes('professionnalisation')) {
+    if (rawOffer.alternance === true || contractNature.includes('apprentissage') || contractNature.includes('professionnalisation')) {
         return 'ALTERNANCE';
     }
 
-    if (offre.typeContrat === 'CDI') {
+    if (rawOffer.typeContrat === 'CDI') {
         return 'CDI';
     }
 
@@ -69,22 +69,22 @@ async function searchOffers(token, searchParams) {
         const rawOffers = response.data.resultats || [];
 
         // On mappe (traduit) les données spécifiques de FT vers le format Standard !
-        return rawOffers.map(offre => {
+        return rawOffers.map(rawOffer => {
             // L'URL canonique France Travail est preferee a celle du partenaire.
             // Les liens partenaires pointent vers des ATS tiers (Beetween, Taleez, etc.) construits
             // comme des applications a fragment : ils sont purges des que le poste est pourvu et
             // renvoient alors une page 404 sans explication. L'URL France Travail reste valide tant
             // que l'offre est publiee, et affiche un message clair une fois l'offre retiree.
-            const link = `https://candidat.francetravail.fr/offres/recherche/detail/${offre.id}`;
+            const link = `https://candidat.francetravail.fr/offres/recherche/detail/${rawOffer.id}`;
             return {
-                id: offre.id,
-                title: offre.intitule,
-                company: offre.entreprise?.nom || 'Inconnu',
-                location: offre.lieuTravail?.libelle,
-                contractType: normaliserTypeContrat(offre),
-                contractLabel: offre.typeContratLibelle || offre.natureContrat || 'Non renseigné',
+                id: rawOffer.id,
+                title: rawOffer.intitule,
+                company: rawOffer.entreprise?.nom || 'Inconnu',
+                location: rawOffer.lieuTravail?.libelle,
+                contractType: normalizeContractType(rawOffer),
+                contractLabel: rawOffer.typeContratLibelle || rawOffer.natureContrat || 'Non renseigné',
                 link: link,
-                description: offre.description
+                description: rawOffer.description
             };
         });
     } catch (error) {

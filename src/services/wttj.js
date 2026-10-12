@@ -34,12 +34,12 @@ const REQUEST_HEADERS = {
 // Il arrive que l'entreprise publie une offre d'alternance en indiquant FULL_TIME comme type de contrat.
 // Seul le titre est examine, car une description peut mentionner « une premiere experience en
 // alternance » pour un poste classique.
-function normaliserTypeContrat(contractType, titre) {
+function normalizeContractType(contractType, title) {
     if (contractType === 'APPRENTICESHIP') {
         return 'ALTERNANCE';
     }
 
-    if (/\b(alternance|alternant|alternante|apprenti|apprentie|apprentissage)\b/i.test(titre)) {
+    if (/\b(alternance|alternant|alternante|apprenti|apprentie|apprentissage)\b/i.test(title)) {
         return 'ALTERNANCE';
     }
 
@@ -98,7 +98,7 @@ async function searchOffers() {
                 title: rawOffer.name,
                 company: rawOffer.organization?.name || 'Inconnu',
                 location: rawOffer.offices?.[0]?.city || 'Non renseigné',
-                contractType: normaliserTypeContrat(rawOffer.contract_type, rawOffer.name),
+                contractType: normalizeContractType(rawOffer.contract_type, rawOffer.name),
                 contractLabel: contractTypeLabel,
                 link: jobUrl,
                 description: rawOffer.profile || ''
@@ -108,9 +108,9 @@ async function searchOffers() {
         // L'index Algolia de WTTJ contient parfois deux fiches pour une meme annonce : objectID
         // differents, mais lien et description identiques. L'objectID ne permet donc pas de reperer
         // ces doublons, le dedoublonnage porte sur le lien de l'offre.
-        const offresUniquesParLien = [...new Map(offers.map(offre => [offre.link, offre])).values()];
-        logger.info(`WTTJ : ${offers.length} offres recues, ${offresUniquesParLien.length} apres dedoublonnage par lien.`);
-        return offresUniquesParLien;
+        const uniqueOffersByLink = [...new Map(offers.map(offer => [offer.link, offer])).values()];
+        logger.info(`WTTJ : ${offers.length} offres recues, ${uniqueOffersByLink.length} apres dedoublonnage par lien.`);
+        return uniqueOffersByLink;
 
     } catch (error) {
         logger.error('Erreur Search WTTJ : ' + error.message);
