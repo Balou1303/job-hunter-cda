@@ -85,7 +85,7 @@ async function searchOffers() {
         // Traduction vers le format standard commun a toutes nos sources (France Travail, WTTJ, ...)
         // afin que le reste du programme (filtre, sauvegarde en base) n'ait pas besoin de connaitre
         // le format propre a chaque site.
-        return rawJobOffers.map(rawOffer => {
+        const offers = rawJobOffers.map(rawOffer => {
             const jobUrl = `https://www.welcometothejungle.com/fr/companies/${rawOffer.organization?.slug}/jobs/${rawOffer.slug}`;
 
             // Le champ "contract_type_names.fr" contient le libelle en francais du type de contrat,
@@ -104,6 +104,13 @@ async function searchOffers() {
                 description: rawOffer.profile || ''
             };
         });
+
+        // L'index Algolia de WTTJ contient parfois deux fiches pour une meme annonce : objectID
+        // differents, mais lien et description identiques. L'objectID ne permet donc pas de reperer
+        // ces doublons, le dedoublonnage porte sur le lien de l'offre.
+        const offresUniquesParLien = [...new Map(offers.map(offre => [offre.link, offre])).values()];
+        logger.info(`WTTJ : ${offers.length} offres recues, ${offresUniquesParLien.length} apres dedoublonnage par lien.`);
+        return offresUniquesParLien;
 
     } catch (error) {
         logger.error('Erreur Search WTTJ : ' + error.message);
